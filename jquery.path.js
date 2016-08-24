@@ -7,8 +7,8 @@
   var path = $.path.bezier({
     start: {x:10, y:10, angle: 20, length: 0.3},
     end:   {x:20, y:30, angle: -20, length: 0.2}
-  })
-  $("myobj").animate({path: path}, duration)
+  });
+  $("myobj").animate({path: path, true}, duration); //Include the true to enable rotation.
 
 */
 
@@ -29,8 +29,8 @@
     add: function(a, b) {
       return [a[0]+b[0], a[1]+b[1]];
     },
-    minus: function(a, b) {
-      return [a[0]-b[0], a[1]-b[1]];
+    minus: function(end, start) {
+      return [end[0]-start[0], end[1]-start[1]];
     }
   };
 
@@ -38,19 +38,19 @@
     params.start = $.extend( {angle: 0, length: 0.3333}, params.start );
     params.end = $.extend( {angle: 0, length: 0.3333}, params.end );
 
-    this.p1 = [params.start.x, params.start.y];
-    this.p4 = [params.end.x, params.end.y];
+    this.start = [params.start.x, params.start.y];//point1 start 
+    this.end = [params.end.x, params.end.y];  //point4 start
 
-    var v14 = V.minus( this.p4, this.p1 ),
+    var v14 = V.minus( this.end, this.start ),
       v12 = V.scale( v14, params.start.length ),
       v41 = V.scale( v14, -1 ),
       v43 = V.scale( v41, params.end.length );
 
     v12 = V.rotate( v12, params.start.angle );
-    this.p2 = V.add( this.p1, v12 );
+    this.p2 = V.add( this.start, v12 );
 
     v43 = V.rotate(v43, params.end.angle );
-    this.p3 = V.add( this.p4, v43 );
+    this.p3 = V.add( this.end, v43 );
 
     this.f1 = function(t) { return (t*t*t); };
     this.f2 = function(t) { return (3*t*t*(1-t)); };
@@ -64,8 +64,8 @@
         css.prevX = this.x;
         css.prevY = this.y;
       }
-      css.x = this.x = ( this.p1[0]*f1 + this.p2[0]*f2 +this.p3[0]*f3 + this.p4[0]*f4 +.5 )|0;
-      css.y = this.y = ( this.p1[1]*f1 + this.p2[1]*f2 +this.p3[1]*f3 + this.p4[1]*f4 +.5 )|0;
+      css.x = this.x = ( this.start[0]*f1 + this.p2[0]*f2 +this.p3[0]*f3 + this.end[0]*f4 +.5 ); //remove | 0 from end;
+      css.y = this.y = ( this.start[1]*f1 + this.p2[1]*f2 +this.p3[1]*f3 + this.end[1]*f4 +.5 );  //remove | 0 from end;
       css.left = css.x + "px";
       css.top = css.y + "px";
       return css;
@@ -105,8 +105,12 @@
 
   $.fx.step.path = function(fx) {
     var css = fx.end.css( 1 - fx.pos );
-    if ( css.prevX != null ) {
-      $.cssHooks.transform.set( fx.elem, "rotate(" + Math.atan2(css.prevY - css.y, css.prevX - css.x) + ")" );
+       if ( css.prevX != null ) {
+      //This didn't work. "Uncaught TypeError: Cannot read property 'set' of undefined."
+      //$.cssHooks.transform.set( fx.elem, "rotate(" + Math.atan2(css.prevY - css.y, css.prevX - css.x) + ")" );
+      
+      degrees = -Math.degrees(Math.atan2(css.prevX - css.x,css.prevY - css.y)); // this may need tweaking, I needed to correct css's transform so that 0 deg was facing up.
+      fx.elem.style.transform= "rotate(" +  (degrees) + "deg)";
     }
     fx.elem.style.top = css.top;
     fx.elem.style.left = css.left;
